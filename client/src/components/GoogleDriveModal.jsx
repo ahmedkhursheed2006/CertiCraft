@@ -3,7 +3,7 @@ import { X, Cloud, CheckCircle, FolderPlus, Folder, Loader2, ShieldCheck, LogOut
 import confetti from 'canvas-confetti';
 import { renderCertificateCanvas, canvasToPdfBytes, formatFilename, loadImage } from '../utils/exportGenerator';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+const API_BASE = (import.meta.env.SERVER_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
 export default function GoogleDriveModal({
   isOpen,
