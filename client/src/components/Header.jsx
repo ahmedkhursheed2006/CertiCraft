@@ -89,14 +89,7 @@ export default function Header({
           <span>Records ({recordCount})</span>
         </button>
 
-        {/* Google Drive Direct Connector */}
-        <button
-          onClick={onOpenDriveModal}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded-md text-xs font-medium border border-neutral-800 transition"
-        >
-          <Cloud className="w-3.5 h-3.5 text-blue-400" />
-          <span className="hidden sm:inline">Drive Sync</span>
-        </button>
+
 
         <div className="h-4 w-[1px] bg-neutral-800 mx-0.5" />
 
