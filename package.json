@@ -1,0 +1,19 @@
+{
+  "name": "certicraft-dynamic-certificate-generator",
+  "version": "1.0.0",
+  "description": "Full-stack Dynamic Certificate Generator (MERN Stack)",
+  "scripts": {
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build:client": "cd client && npm run build"
+  },
+  "keywords": [
+    "certificate-generator",
+    "react-konva",
+    "pdf-lib",
+    "bulk-certificates",
+    "mern"
+  ],
+  "author": "",
+  "license": "MIT"
+}
