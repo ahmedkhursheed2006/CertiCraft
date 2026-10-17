@@ -79,13 +79,7 @@ export default function LandingPage({ onLaunchStudio }) {
     }
   ];
 
-  const TRUSTED_BY = [
-    'Y COMBINATOR HACKATHONS',
-    'STANFORD TECH SYMPOSIUM',
-    'AWS CLOUD BUILDERS',
-    'STRIPE SESSIONS ALUMNI',
-    'DEVCON GLOBAL'
-  ];
+
 
   const FAQS = [
     {
@@ -175,7 +169,7 @@ export default function LandingPage({ onLaunchStudio }) {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-20 pb-16 px-6 lg:px-12 max-w-5xl mx-auto text-center select-none">
+      <section className="relative z-10 mb-20 pt-20 pb-16 px-6 lg:px-12 max-w-5xl mx-auto text-center select-none">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#12141a] border border-neutral-800 text-xs text-neutral-300 mb-6 shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           <span className="font-mono text-[11px] text-neutral-400">Vellum Infrastructure</span>
@@ -206,20 +200,6 @@ export default function LandingPage({ onLaunchStudio }) {
           >
             <span>Test Interactive Sandbox ↓</span>
           </a>
-        </div>
-
-        {/* Organization Social Proof Strip (Solid Opaque Pill) */}
-        <div className="mt-16 pt-10 border-t border-neutral-900 flex flex-col items-center">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-4">
-            Trusted by Credentialing &amp; Event Operations Teams
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-6 px-6 py-2.5 rounded-full bg-[#0e1015] border border-neutral-800 shadow-md text-[11px] font-mono text-neutral-400 tracking-wider">
-            {TRUSTED_BY.map((org, i) => (
-              <span key={i} className="hover:text-neutral-200 transition">
-                {org}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 
