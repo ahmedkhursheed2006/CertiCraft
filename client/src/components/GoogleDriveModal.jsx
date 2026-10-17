@@ -3,6 +3,8 @@ import { X, Cloud, CheckCircle, FolderPlus, Folder, Loader2, ShieldCheck, LogOut
 import confetti from 'canvas-confetti';
 import { renderCertificateCanvas, canvasToPdfBytes, formatFilename, loadImage } from '../utils/exportGenerator';
 
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+
 export default function GoogleDriveModal({
   isOpen,
   onClose,
@@ -46,7 +48,7 @@ export default function GoogleDriveModal({
 
   const fetchFolders = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/drive/folders', {
+      const res = await fetch(`${API_BASE}/api/drive/folders`, {
         headers: {
           Authorization: `Bearer ${authStatus.token || 'demo-token'}`
         }
@@ -92,7 +94,7 @@ export default function GoogleDriveModal({
     if (!newFolderName.trim()) return;
     setIsCreatingFolder(true);
     try {
-      const res = await fetch('http://localhost:5000/api/drive/create-folder', {
+      const res = await fetch(`${API_BASE}/api/drive/create-folder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +154,7 @@ export default function GoogleDriveModal({
       }
 
       const selectedFolder = folders.find((f) => f.id === selectedFolderId);
-      const res = await fetch('http://localhost:5000/api/drive/upload-batch', {
+      const res = await fetch(`${API_BASE}/api/drive/upload-batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
