@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { X, Upload, FileSpreadsheet, Download, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, Download, Sparkles, AlertCircle, CheckCircle2, UserPlus, Trash2 } from 'lucide-react';
 import { SAMPLE_RECIPIENTS } from '../utils/sampleCertificates';
 
 export default function DataModal({
@@ -12,10 +12,57 @@ export default function DataModal({
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [localRecords, setLocalRecords] = useState(records || []);
+
+  // Quick Manual Add Form State
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualCourse, setManualCourse] = useState('Advanced Full-Stack Engineering & Cloud Architecture');
+  const [manualDate, setManualDate] = useState('October 17, 2026');
+  const [manualId, setManualId] = useState('');
+
+  useEffect(() => {
+    setLocalRecords(records || []);
+  }, [records]);
 
   if (!isOpen) return null;
 
-  // Handles .xlsx / .xls parsing
+  const commitRecords = (newRecords, sourceLabel) => {
+    setLocalRecords(newRecords);
+    onSaveRecords(newRecords);
+    setErrorMsg('');
+    setSuccessMsg(`Successfully loaded ${newRecords.length} records (${sourceLabel})`);
+    setTimeout(() => setSuccessMsg(''), 4000);
+  };
+
+  const handleAddManualRow = (e) => {
+    e?.preventDefault();
+    if (!manualName.trim()) {
+      setErrorMsg('Recipient Full Name is required.');
+      return;
+    }
+
+    const nextId = manualId.trim() || `VLM-2026-${String(localRecords.length + 1).padStart(4, '0')}`;
+    const newEntry = {
+      'Full_Name': manualName.trim(),
+      'Course_Name': manualCourse.trim(),
+      'Date': manualDate.trim(),
+      'Certificate_ID': nextId
+    };
+
+    const updated = [...localRecords, newEntry];
+    commitRecords(updated, `Added "${manualName.trim()}"`);
+    setManualName('');
+    setManualId('');
+    setShowManualForm(false);
+  };
+
+  const handleDeleteRow = (indexToDelete) => {
+    const updated = localRecords.filter((_, idx) => idx !== indexToDelete);
+    commitRecords(updated, 'Deleted record');
+  };
+
   const processExcel = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -30,9 +77,7 @@ export default function DataModal({
           setErrorMsg('The uploaded Excel sheet contains no rows.');
           return;
         }
-        onSaveRecords(json);
-        setErrorMsg('');
-        onClose();
+        commitRecords(json, file.name);
       } catch (err) {
         setErrorMsg('Failed to parse Excel file: ' + err.message);
       }
@@ -40,22 +85,19 @@ export default function DataModal({
     reader.readAsArrayBuffer(file);
   };
 
-  // Handles .csv parsing
   const processCsv = (file) => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        if (results.data.length === 0) {
-          setErrorMsg('The uploaded CSV file is empty.');
+        if (!results.data || results.data.length === 0) {
+          setErrorMsg('The CSV file is empty.');
           return;
         }
-        onSaveRecords(results.data);
-        setErrorMsg('');
-        onClose();
+        commitRecords(results.data, file.name);
       },
       error: (err) => {
-        setErrorMsg('Failed to parse CSV file: ' + err.message);
+        setErrorMsg('Failed to parse CSV: ' + err.message);
       }
     });
   };
@@ -68,101 +110,124 @@ export default function DataModal({
     } else if (ext === 'csv') {
       processCsv(file);
     } else {
-      setErrorMsg('Please upload a valid .xlsx, .xls, or .csv spreadsheet.');
+      setErrorMsg('Please upload a valid .xlsx or .csv spreadsheet.');
     }
   };
 
-  // Quick generator for 50 realistic test participants
   const generate50TestParticipants = () => {
-    const FIRST_NAMES = ['Elena', 'Marcus', 'Sophia', 'David', 'Zara', 'Liam', 'Aria', 'Ethan', 'Chloe', 'Noah', 'Amara', 'Lucas', 'Maya', 'Mason', 'Olivia', 'James', 'Isabella', 'Benjamin', 'Mia', 'Henry'];
-    const LAST_NAMES = ['Sterling', 'Vance', 'Chen', 'Al-Mansoor', 'O\'Connor', 'Kowalski', 'Dubois', 'Nakamura', 'Patel', 'Kim', 'Santos', 'Meyer', 'Fischer', 'Johansson', 'Reyes'];
-    const generated = [];
+    const FIRST_NAMES = [
+      'Alexander', 'Elena', 'Marcus', 'Sophia', 'David', 'Zara', 'Liam', 'Aria', 'Ethan', 'Chloe',
+      'Noah', 'Amara', 'Lucas', 'Maya', 'Mason', 'Olivia', 'James', 'Isabella', 'Benjamin', 'Mia'
+    ];
+    const LAST_NAMES = [
+      'Sterling', 'Vance', 'Chen', 'Al-Mansoor', "O'Connor", 'Kowalski', 'Dubois', 'Nakamura',
+      'Patel', 'Kim', 'Santos', 'Meyer', 'Fischer', 'Johansson', 'Reyes', 'Montgomery', 'Sinclair'
+    ];
+    const COURSES = [
+      'Full-Stack Cloud Infrastructure Fellowship',
+      'Advanced Distributed Systems & Microservices',
+      'Modern AI & Systems Architecture Summit',
+      'Cybersecurity & Network Defense Bootcamp'
+    ];
 
+    const generated = [];
     for (let i = 1; i <= 50; i++) {
-      const fName = FIRST_NAMES[i % FIRST_NAMES.length];
-      const lName = LAST_NAMES[(i * 3) % LAST_NAMES.length];
+      const fName = FIRST_NAMES[(i * 3) % FIRST_NAMES.length];
+      const lName = LAST_NAMES[(i * 7) % LAST_NAMES.length];
+      const course = COURSES[i % COURSES.length];
       generated.push({
         'Full_Name': `${fName} ${lName}`,
-        'Course_Name': 'Advanced Full-Stack Engineering & Cloud Architecture',
+        'Course_Name': course,
         'Date': 'October 17, 2026',
-        'Certificate_ID': `CERT-2026-${String(i).padStart(4, '0')}`
+        'Certificate_ID': `VLM-2026-${String(i).padStart(4, '0')}`
       });
     }
-    onSaveRecords(generated);
-    onClose();
+
+    commitRecords(generated, '50 Generated Test Participants');
   };
 
-  // Download sample CSV template
   const downloadSampleCsv = () => {
-    const csvContent = "data:text/csv;charset=utf-8," + 
-      "Full_Name,Course_Name,Date,Certificate_ID\n" +
-      "Alexander Hayes,Mastering Full-Stack Architecture,October 17 2026,CERT-2026-001\n" +
-      "Samantha Vance,Mastering Full-Stack Architecture,October 17 2026,CERT-2026-002\n" +
-      "Liam O'Connor,Mastering Full-Stack Architecture,October 17 2026,CERT-2026-003";
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      'Full_Name,Course_Name,Date,Certificate_ID\n' +
+      'Alexander Hayes,Mastering Full-Stack Architecture,October 17 2026,VLM-2026-0001\n' +
+      'Samantha Vance,Mastering Full-Stack Architecture,October 17 2026,VLM-2026-0002\n' +
+      "Liam O'Connor,Mastering Full-Stack Architecture,October 17 2026,VLM-2026-0003\n" +
+      'Elena Montgomery,Mastering Full-Stack Architecture,October 17 2026,VLM-2026-0004';
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "certificate_sample_participants.csv");
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'vellum_sample_attendees.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const headers = records.length > 0 ? Object.keys(records[0]) : [];
+  const headers = localRecords.length > 0 ? Object.keys(localRecords[0]) : [];
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-150">
+      <div className="bg-[#0c0d0e] border border-neutral-800 rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b border-neutral-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 flex items-center justify-center">
               <FileSpreadsheet className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">Dynamic Data Ingestion</h3>
-              <p className="text-xs text-slate-400">Upload your Excel or CSV file to batch generate certificates</p>
+              <h3 className="text-xs font-semibold text-white">Dataset Ingestion &amp; Mapping</h3>
+              <p className="text-[11px] text-neutral-400">Upload attendee files, generate batches, or add manually</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        {/* Body */}
+        <div className="p-5 overflow-y-auto space-y-4">
           {errorMsg && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-xs text-red-400">
+            <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-lg flex items-center gap-2 text-xs text-red-400">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Drag & Drop Upload Zone */}
+          {successMsg && (
+            <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-lg flex items-center gap-2 text-xs text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span className="font-medium">{successMsg}</span>
+            </div>
+          )}
+
+          {/* Upload Drop Zone */}
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
             onDragLeave={() => setDragActive(false)}
             onDrop={(e) => {
               e.preventDefault();
               setDragActive(false);
               if (e.dataTransfer.files?.[0]) handleFileUpload(e.dataTransfer.files[0]);
             }}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center transition flex flex-col items-center justify-center cursor-pointer ${
-              dragActive ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 hover:border-slate-700 bg-slate-950/50'
+            className={`border border-dashed rounded-xl p-5 text-center transition flex flex-col items-center justify-center ${
+              dragActive ? 'border-neutral-400 bg-neutral-900/60' : 'border-neutral-800 hover:border-neutral-700 bg-neutral-950/60'
             }`}
           >
-            <Upload className="w-8 h-8 text-emerald-400 mb-2" />
-            <p className="text-sm font-semibold text-slate-200">
-              Drag &amp; drop your .xlsx or .csv file here
+            <Upload className="w-5 h-5 text-neutral-400 mb-1.5" />
+            <p className="text-xs font-semibold text-neutral-200">
+              Drag &amp; drop an Excel (.xlsx) or CSV file
             </p>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
-              Columns will automatically match variable tags like &#123;&#123;Full_Name&#125;&#125;
+            <p className="text-[11px] text-neutral-500 mt-0.5 mb-2.5">
+              Spreadsheet columns automatically map to variables like &#123;&#123;Full_Name&#125;&#125;
             </p>
-            <label className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg cursor-pointer transition border border-slate-700">
-              Browse Files
+            <label className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium rounded cursor-pointer transition border border-neutral-700">
+              Browse Spreadsheet
               <input
                 type="file"
                 accept=".xlsx, .xls, .csv"
@@ -174,91 +239,200 @@ export default function DataModal({
             </label>
           </div>
 
-          {/* Quick Test Shortcuts */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2">
+          {/* Action Row: Sample 5, Generate 50, Add Manually */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={() => {
-                  onSaveRecords(SAMPLE_RECIPIENTS);
-                  onClose();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-medium transition"
+                type="button"
+                onClick={() => commitRecords(SAMPLE_RECIPIENTS, '5 Sample Recipients')}
+                className="px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 rounded text-xs font-medium transition"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Load Sample 5 Recipients</span>
+                Sample 5
               </button>
 
               <button
+                type="button"
                 onClick={generate50TestParticipants}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-medium transition"
+                className="flex items-center gap-1.5 px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 rounded text-xs font-semibold transition active:scale-95 shadow-sm"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Generate 50 Test Participants</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Generate 50 Test Records</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowManualForm(!showManualForm)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold transition border ${
+                  showManualForm
+                    ? 'bg-white text-neutral-950 border-white'
+                    : 'bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800'
+                }`}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Add Manually</span>
               </button>
             </div>
 
             <button
+              type="button"
               onClick={downloadSampleCsv}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition"
+              className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-200 transition"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download sample CSV template</span>
+              <span>Sample CSV</span>
             </button>
           </div>
 
-          {/* Current Loaded Data Preview */}
-          {records.length > 0 && (
+          {/* Inline Manual Form Drawer */}
+          {showManualForm && (
+            <div className="p-4 bg-neutral-950 rounded-xl border border-neutral-800 space-y-3 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-neutral-200">
+                  New Certificate Recipient
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowManualForm(false)}
+                  className="text-neutral-500 hover:text-neutral-300 text-xs"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label className="block text-[10px] text-neutral-400 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    placeholder="e.g. Dr. Jordan Vance"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-neutral-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-neutral-400 mb-1">Course / Award</label>
+                  <input
+                    type="text"
+                    value={manualCourse}
+                    onChange={(e) => setManualCourse(e.target.value)}
+                    placeholder="Course name..."
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-neutral-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-neutral-400 mb-1">Issue Date</label>
+                  <input
+                    type="text"
+                    value={manualDate}
+                    onChange={(e) => setManualDate(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-neutral-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-neutral-400 mb-1">Certificate ID</label>
+                  <input
+                    type="text"
+                    value={manualId}
+                    onChange={(e) => setManualId(e.target.value)}
+                    placeholder={`VLM-2026-${String(localRecords.length + 1).padStart(4, '0')}`}
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-neutral-600 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddManualRow}
+                  className="px-3.5 py-1 bg-white hover:bg-neutral-200 text-neutral-950 font-semibold rounded text-xs transition"
+                >
+                  Add Recipient to List
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table Preview */}
+          {localRecords.length > 0 ? (
             <div className="pt-2">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-300">
-                  Currently Loaded Data ({records.length} records)
+                <span className="text-xs font-medium text-neutral-200 flex items-center gap-2">
+                  <span>Loaded Dataset</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-800 text-neutral-300 border border-neutral-700">
+                    {localRecords.length} records ready
+                  </span>
                 </span>
-                <span className="text-[11px] text-emerald-400 font-mono">
+                <span className="text-[11px] text-neutral-500 font-mono">
                   {headers.length} columns detected
                 </span>
               </div>
-              <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+
+              <div className="bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden max-h-52 overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-800/80 text-slate-300 font-semibold border-b border-slate-800">
+                    <tr className="bg-neutral-900 text-neutral-400 font-medium border-b border-neutral-800 sticky top-0">
                       <th className="p-2 w-10 text-center">#</th>
                       {headers.map((h, i) => (
-                        <th key={i} className="p-2 border-l border-slate-800/60 font-mono text-[11px] text-indigo-300">
+                        <th key={i} className="p-2 border-l border-neutral-800 font-mono text-[10px] text-neutral-300">
                           &#123;&#123;{h}&#125;&#125;
                         </th>
                       ))}
+                      <th className="p-2 w-10 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {records.slice(0, 8).map((r, rowIdx) => (
-                      <tr key={rowIdx} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                        <td className="p-2 text-center text-slate-500 font-mono text-[10px]">{rowIdx + 1}</td>
+                    {localRecords.slice(0, 15).map((r, rowIdx) => (
+                      <tr key={rowIdx} className="border-b border-neutral-800/50 hover:bg-neutral-900/40">
+                        <td className="p-2 text-center text-neutral-600 font-mono text-[10px]">{rowIdx + 1}</td>
                         {headers.map((h, colIdx) => (
-                          <td key={colIdx} className="p-2 border-l border-slate-800/50 text-slate-300 truncate max-w-[150px]">
+                          <td key={colIdx} className="p-2 border-l border-neutral-800/50 text-neutral-300 truncate max-w-[150px]">
                             {String(r[h] || '')}
                           </td>
                         ))}
+                        <td className="p-2 text-center border-l border-neutral-800/50">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRow(rowIdx)}
+                            title="Delete this record"
+                            className="p-1 text-neutral-500 hover:text-red-400 rounded transition"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              {records.length > 8 && (
-                <p className="text-[11px] text-slate-500 text-center mt-1.5">
-                  Showing first 8 of {records.length} records
+
+              {localRecords.length > 15 && (
+                <p className="text-[10px] text-neutral-500 text-center mt-1.5 font-mono">
+                  Showing first 15 of {localRecords.length} records. All {localRecords.length} are in memory and ready for batch generation.
                 </p>
               )}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-neutral-500 border border-neutral-800/80 rounded-lg bg-neutral-950/40">
+              <p className="text-xs">No records loaded yet. Upload a file or click "Generate 50 Test Records" above.</p>
             </div>
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-end">
+        {/* Footer with Explicit Apply Button */}
+        <div className="px-5 py-3 bg-neutral-950 border-t border-neutral-800 flex items-center justify-between">
+          <span className="text-[11px] text-neutral-500 font-mono">
+            {localRecords.length} certificates in queue
+          </span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition"
+            className="px-4 py-1.5 bg-white hover:bg-neutral-200 text-neutral-950 rounded text-xs font-semibold transition"
           >
-            Done
+            Apply &amp; Return to Canvas
           </button>
         </div>
       </div>

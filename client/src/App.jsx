@@ -7,11 +7,16 @@ import PreviewCycler from './components/PreviewCycler';
 import DataModal from './components/DataModal';
 import FontModal from './components/FontModal';
 import ExportModal from './components/ExportModal';
+import GoogleDriveModal from './components/GoogleDriveModal';
+import LandingPage from './components/LandingPage';
 
 import { SAMPLE_TEMPLATES, DEFAULT_ELEMENTS, SAMPLE_RECIPIENTS } from './utils/sampleCertificates';
 import { BUILT_IN_FONTS } from './utils/fontManager';
 
 export default function App() {
+  // Navigation: 'landing' (single-page overview) or 'studio' (dedicated workspace)
+  const [viewMode, setViewMode] = useState('landing');
+
   const [templates, setTemplates] = useState(SAMPLE_TEMPLATES);
   const [currentTemplate, setCurrentTemplate] = useState(SAMPLE_TEMPLATES[0]);
   const [elements, setElements] = useState(DEFAULT_ELEMENTS);
@@ -26,9 +31,11 @@ export default function App() {
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [isFontModalOpen, setIsFontModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
-  // Keyboard shortcut listener for Delete & Escape
+  // Keyboard shortcut listener for Delete & Escape in Studio mode
   useEffect(() => {
+    if (viewMode !== 'studio') return;
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -41,15 +48,13 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, elements]);
+  }, [selectedId, elements, viewMode]);
 
-  // Select pre-existing template
   const handleSelectTemplate = (id) => {
     const found = templates.find((t) => t.id === id);
     if (found) setCurrentTemplate(found);
   };
 
-  // Upload custom universal certificate template image
   const handleUploadTemplateImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -74,7 +79,6 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  // Add new dynamic text element
   const handleAddElement = (preset) => {
     const newId = 'el_' + Date.now();
     const newEl = {
@@ -82,22 +86,22 @@ export default function App() {
       tag: preset.tag || '{{Custom_Field}}',
       text: preset.label || 'Dynamic Text Box',
       x: Math.round((currentTemplate.width - (preset.width || 400)) / 2),
-      y: Math.round((currentTemplate.height - (preset.height || 50)) / 2),
+      y: Math.round((currentTemplate.height - (preset.height || 60)) / 2),
       width: preset.width || 400,
-      height: preset.height || 50,
+      height: preset.height || 60,
       fontSize: preset.fontSize || 24,
       fontFamily: preset.fontFamily || 'Inter',
       fontWeight: 'normal',
       fontStyle: 'normal',
-      fill: preset.fill || '#ffffff',
+      fill: preset.fill || '#f4f4f5',
       align: 'center',
+      verticalAlign: 'middle',
       autoFit: true
     };
     setElements((prev) => [...prev, newEl]);
     setSelectedId(newId);
   };
 
-  // Duplicate an element
   const handleDuplicateElement = (id) => {
     const el = elements.find((e) => e.id === id);
     if (!el) return;
@@ -111,23 +115,19 @@ export default function App() {
     setSelectedId(duplicated.id);
   };
 
-  // Delete an element
   const handleDeleteElement = (id) => {
     setElements((prev) => prev.filter((e) => e.id !== id));
     if (selectedId === id) setSelectedId(null);
   };
 
-  // Update element properties from canvas or sidebar
   const handleChangeElement = (newAttrs) => {
     setElements((prev) =>
       prev.map((el) => (el.id === newAttrs.id ? newAttrs : el))
     );
   };
 
-  // Add newly uploaded custom font
   const handleAddCustomFont = (fontObj) => {
     setFonts((prev) => [fontObj, ...prev]);
-    // If an element is active, immediately apply this custom font to it!
     if (selectedId) {
       setElements((prev) =>
         prev.map((el) => (el.id === selectedId ? { ...el, fontFamily: fontObj.family } : el))
@@ -135,12 +135,98 @@ export default function App() {
     }
   };
 
+  // Instant 1-Click New Certificate Addition (ZERO DIALOGS)
+  const handleAddDirectRecipient = () => {
+    const nextNum = records.length + 1;
+    const templateCourse = currentRecord?.Course_Name || 'Advanced Full-Stack Engineering';
+    const templateDate = currentRecord?.Date || 'October 17, 2026';
+
+    const newRecord = {
+      'Full_Name': `New Recipient ${nextNum}`,
+      'Course_Name': templateCourse,
+      'Date': templateDate,
+      'Certificate_ID': `VLM-2026-${String(nextNum).padStart(4, '0')}`
+    };
+
+    setRecords((prev) => {
+      const updated = [...prev, newRecord];
+      setCurrentRecordIndex(updated.length - 1);
+      return updated;
+    });
+    setIsPreviewActive(true);
+  };
+
+  // Delete certificate from list
+  const handleDeleteCurrentRecord = (indexToDelete) => {
+    if (records.length <= 1) return;
+    setRecords((prev) => {
+      const updated = prev.filter((_, idx) => idx !== indexToDelete);
+      setCurrentRecordIndex((current) => Math.min(current, updated.length - 1));
+      return updated;
+    });
+  };
+
+  // Live Inspector Field Modification
+  const handleUpdateCurrentRecordValue = (key, val) => {
+    if (records.length > 0) {
+      setRecords((prev) => {
+        const copy = [...prev];
+        copy[currentRecordIndex] = {
+          ...copy[currentRecordIndex],
+          [key]: val
+        };
+        return copy;
+      });
+    }
+
+    if (selectedId) {
+      setElements((prev) =>
+        prev.map((el) => (el.id === selectedId ? { ...el, text: val } : el))
+      );
+    }
+  };
+
+  // Double-Click Inline Canvas Edit Handler
+  const handleUpdateTextValue = (element, val) => {
+    const rawTag = element.tag || '';
+    const match = rawTag.match(/\{\{\s*([a-zA-Z0-9_\-\s]+)\s*\}\}/);
+    const key = match ? match[1].trim() : rawTag.replace(/[{}]/g, '').trim();
+
+    if (key && records.length > 0) {
+      setRecords((prev) => {
+        const copy = [...prev];
+        copy[currentRecordIndex] = {
+          ...copy[currentRecordIndex],
+          [key]: val
+        };
+        return copy;
+      });
+    }
+
+    setElements((prev) =>
+      prev.map((el) => (el.id === element.id ? { ...el, text: val } : el))
+    );
+  };
+
   const selectedElement = elements.find((el) => el.id === selectedId);
   const currentRecord = isPreviewActive && records.length > 0 ? records[currentRecordIndex] : null;
 
+  // View 1: Landing Page (Single-page with smooth scrolling anchors & sandbox demo)
+  if (viewMode === 'landing') {
+    return (
+      <LandingPage
+        onLaunchStudio={() => {
+          setViewMode('studio');
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }}
+      />
+    );
+  }
+
+  // View 2: Full Dedicated Vellum Studio Page
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* Top Application Header */}
+    <div className="flex flex-col h-screen w-screen bg-[#08090b] text-neutral-100 overflow-hidden font-sans select-none">
+      {/* Studio Top Header */}
       <Header
         templates={templates}
         currentTemplate={currentTemplate}
@@ -149,12 +235,14 @@ export default function App() {
         onOpenDataModal={() => setIsDataModalOpen(true)}
         onOpenFontModal={() => setIsFontModalOpen(true)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenDriveModal={() => setIsDriveModalOpen(true)}
+        onNavigateHome={() => setViewMode('landing')}
         recordCount={records.length}
       />
 
-      {/* Main Studio Body: Left Sidebar + Canvas + Right Sidebar */}
+      {/* Main Studio Workspace */}
       <div className="flex flex-1 relative overflow-hidden">
-        {/* Left Sidebar: Presets & Layers */}
+        {/* Left Sidebar: Variables & Layers */}
         <LeftSidebar
           elements={elements}
           selectedId={selectedId}
@@ -166,7 +254,7 @@ export default function App() {
           onToggleGrid={() => setShowGrid(!showGrid)}
         />
 
-        {/* Center: Visual Canvas */}
+        {/* Center: Interactive Canvas Editor with Double Click Edit & Full Height Adjustment */}
         <div className="flex-1 relative flex flex-col h-full overflow-hidden">
           <CanvasEditor
             template={currentTemplate}
@@ -174,23 +262,28 @@ export default function App() {
             selectedId={selectedId}
             onSelectElement={setSelectedId}
             onChangeElement={handleChangeElement}
+            onUpdateTextValue={handleUpdateTextValue}
             currentRecord={currentRecord}
             showGrid={showGrid}
           />
 
-          {/* Floating Bottom Data Navigator */}
+          {/* Floating Data Record Cycler with Infinite Circular Navigation & 1-Click New Certificate */}
           <PreviewCycler
             records={records}
             currentIndex={currentRecordIndex}
             onIndexChange={setCurrentRecordIndex}
             isPreviewActive={isPreviewActive}
             onTogglePreview={() => setIsPreviewActive(!isPreviewActive)}
+            onOpenManualAddModal={handleAddDirectRecipient}
+            onDeleteCurrentRecord={handleDeleteCurrentRecord}
           />
         </div>
 
-        {/* Right Sidebar: Typography & Box Customization */}
+        {/* Right Sidebar: Inspector with Live Current Value and Container Height */}
         <RightSidebar
           selectedElement={selectedElement}
+          currentRecord={currentRecord}
+          onUpdateCurrentRecordValue={handleUpdateCurrentRecordValue}
           fonts={fonts}
           onChangeElement={handleChangeElement}
         />
@@ -218,6 +311,16 @@ export default function App() {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
+        template={currentTemplate}
+        elements={elements}
+        records={records}
+        currentRecord={currentRecord}
+        onOpenDriveModal={() => setIsDriveModalOpen(true)}
+      />
+
+      <GoogleDriveModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
         template={currentTemplate}
         elements={elements}
         records={records}

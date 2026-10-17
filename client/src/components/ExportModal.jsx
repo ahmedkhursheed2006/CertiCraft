@@ -9,7 +9,8 @@ export default function ExportModal({
   template,
   elements,
   records,
-  currentRecord
+  currentRecord,
+  onOpenDriveModal
 }) {
   const [format, setFormat] = useState('pdf'); // 'pdf' or 'png'
   const [exportMode, setExportMode] = useState('bulk'); // 'bulk' or 'single'
@@ -17,7 +18,6 @@ export default function ExportModal({
   const [zipName, setZipName] = useState('Certificates_Batch.zip');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, currentName: '' });
-  const [driveExportSuccess, setDriveExportSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -25,7 +25,6 @@ export default function ExportModal({
 
   const handleExport = async () => {
     setIsProcessing(true);
-    setDriveExportSuccess(false);
 
     try {
       if (exportMode === 'single') {
@@ -71,50 +70,28 @@ export default function ExportModal({
     }
   };
 
-  const handleGoogleDriveSync = async () => {
-    try {
-      setIsProcessing(true);
-      // Trigger backend Drive integration endpoint
-      const res = await fetch('http://localhost:5000/api/drive/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          folderName: 'CertiCraft_Certificates',
-          certificates: dataset
-        })
-      });
-      const data = await res.json();
-      setDriveExportSuccess(true);
-      confetti({ particleCount: 60, spread: 60 });
-    } catch (err) {
-      alert('Could not connect to backend server: ' + err.message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const progressPercent = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-150">
+      <div className="bg-[#0b0e14] border border-white/[0.08] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-amber-300" />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">Export Certificates</h3>
-              <p className="text-xs text-slate-400">Generate high-DPI files named per recipient</p>
+              <p className="text-xs text-slate-400">Generate high-DPI print-ready files</p>
             </div>
           </div>
           <button
             disabled={isProcessing}
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -131,12 +108,12 @@ export default function ExportModal({
                 onClick={() => setExportMode('bulk')}
                 className={`p-3 rounded-xl border text-left transition ${
                   exportMode === 'bulk'
-                    ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-sm'
+                    : 'bg-black/40 border-white/[0.06] text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <p className="text-xs font-semibold">Bulk Batch ({records.length})</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Zip all recipient certificates</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Zip all recipient files</p>
               </button>
 
               <button
@@ -144,8 +121,8 @@ export default function ExportModal({
                 onClick={() => setExportMode('single')}
                 className={`p-3 rounded-xl border text-left transition ${
                   exportMode === 'single'
-                    ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-sm'
+                    : 'bg-black/40 border-white/[0.06] text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <p className="text-xs font-semibold">Current Preview Only</p>
@@ -165,8 +142,8 @@ export default function ExportModal({
                 onClick={() => setFormat('pdf')}
                 className={`flex items-center gap-2 p-2.5 rounded-xl border transition ${
                   format === 'pdf'
-                    ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-indigo-600/15 border-indigo-500 text-white'
+                    : 'bg-black/40 border-white/[0.06] text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <FileText className="w-4 h-4 text-red-400" />
@@ -181,8 +158,8 @@ export default function ExportModal({
                 onClick={() => setFormat('png')}
                 className={`flex items-center gap-2 p-2.5 rounded-xl border transition ${
                   format === 'png'
-                    ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-indigo-600/15 border-indigo-500 text-white'
+                    : 'bg-black/40 border-white/[0.06] text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <ImageIcon className="w-4 h-4 text-emerald-400" />
@@ -204,16 +181,16 @@ export default function ExportModal({
               disabled={isProcessing}
               value={namePattern}
               onChange={(e) => setNamePattern(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full bg-black/60 border border-white/[0.08] rounded-lg px-3 py-2 text-xs font-mono text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <p className="text-[11px] text-slate-500 mt-1">
-              Example output: <span className="text-slate-300">Dr_Evelyn_Montgomery_Certificate.{format}</span>
+              Sample output: <span className="text-slate-300">Dr_Evelyn_Montgomery_Certificate.{format}</span>
             </p>
           </div>
 
           {/* Progress Bar during generation */}
           {isProcessing && (
-            <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+            <div className="p-4 bg-black/60 rounded-xl border border-white/[0.08] space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5 text-indigo-400 font-medium">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -232,22 +209,18 @@ export default function ExportModal({
               </p>
             </div>
           )}
-
-          {driveExportSuccess && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 text-xs text-emerald-400">
-              <CheckCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Direct Google Drive export batch dispatched to your account!</span>
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between gap-3">
-          {/* Direct Google Drive Sync Button */}
+        <div className="px-6 py-4 bg-black/40 border-t border-white/[0.08] flex items-center justify-between gap-3">
           <button
+            type="button"
             disabled={isProcessing}
-            onClick={handleGoogleDriveSync}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition"
+            onClick={() => {
+              onClose();
+              if (onOpenDriveModal) onOpenDriveModal();
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 rounded-lg text-xs font-medium border border-blue-500/30 transition"
           >
             <Cloud className="w-3.5 h-3.5 text-blue-400" />
             <span>Sync to Google Drive</span>

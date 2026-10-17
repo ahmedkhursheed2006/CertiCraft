@@ -3,12 +3,12 @@ import { Stage, Layer, Image as KonvaImage, Text as KonvaText, Rect as KonvaRect
 import { calculateFittedFontSize } from '../utils/fontManager';
 import { interpolateText } from '../utils/exportGenerator';
 
-// Individual Draggable and Resizable Text Element on Canvas
 const EditableTextElement = ({
   shapeProps,
   isSelected,
   onSelect,
   onChange,
+  onDoubleClick,
   currentRecord,
   stageScale
 }) => {
@@ -22,12 +22,10 @@ const EditableTextElement = ({
     }
   }, [isSelected]);
 
-  // Interpolate dynamic tags with current recipient record
   const displayText = currentRecord
     ? interpolateText(shapeProps.tag || shapeProps.text, currentRecord)
     : (shapeProps.text || shapeProps.tag);
 
-  // Compute auto-fitted font size if autoFit is enabled
   const computedFontSize = shapeProps.autoFit
     ? calculateFittedFontSize(
         displayText,
@@ -49,6 +47,8 @@ const EditableTextElement = ({
         draggable
         onClick={onSelect}
         onTap={onSelect}
+        onDblClick={() => onDoubleClick(shapeProps, displayText)}
+        onDblTap={() => onDoubleClick(shapeProps, displayText)}
         onDragEnd={(e) => {
           onChange({
             ...shapeProps,
@@ -62,7 +62,6 @@ const EditableTextElement = ({
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
 
-          // Reset scale and update true width & height
           node.scaleX(1);
           node.scaleY(1);
 
@@ -70,23 +69,23 @@ const EditableTextElement = ({
             ...shapeProps,
             x: Math.round(node.x()),
             y: Math.round(node.y()),
-            width: Math.max(40, Math.round(node.width() * scaleX)),
-            height: Math.max(20, Math.round(node.height() * scaleY)),
+            width: Math.max(30, Math.round(node.width() * scaleX)),
+            height: Math.max(15, Math.round(node.height() * scaleY)),
           });
         }}
       >
-        {/* Subtle background container to indicate bounding box when selected */}
+        {/* Crisp Bounding Box / Container */}
         <KonvaRect
           width={shapeProps.width}
           height={shapeProps.height}
-          fill={isSelected ? 'rgba(59, 130, 246, 0.08)' : 'transparent'}
-          stroke={isSelected ? '#3b82f6' : 'rgba(148, 163, 184, 0.25)'}
-          strokeWidth={isSelected ? 1.5 : 1}
-          dash={isSelected ? [] : [4, 4]}
-          cornerRadius={4}
+          fill={isSelected ? 'rgba(255, 255, 255, 0.03)' : 'transparent'}
+          stroke={isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.2)'}
+          strokeWidth={isSelected ? 1.5 : 0.8}
+          dash={isSelected ? [] : [3, 3]}
+          cornerRadius={2}
         />
 
-        {/* Text Node */}
+        {/* Text Node inside the container */}
         <KonvaText
           text={displayText}
           width={shapeProps.width}
@@ -94,23 +93,23 @@ const EditableTextElement = ({
           fontSize={computedFontSize}
           fontFamily={shapeProps.fontFamily || 'Inter'}
           fontStyle={`${shapeProps.fontStyle === 'italic' ? 'italic ' : ''}${shapeProps.fontWeight || 'normal'}`}
-          fill={shapeProps.fill || '#ffffff'}
+          fill={shapeProps.fill || '#f4f4f5'}
           align={shapeProps.align || 'center'}
-          verticalAlign="middle"
+          verticalAlign={shapeProps.verticalAlign || 'middle'}
           wrap="none"
           ellipsis={false}
           listening={false}
         />
 
-        {/* Small floating tag badge */}
+        {/* Floating tag badge */}
         {isSelected && (
           <KonvaText
             x={0}
             y={-18}
             text={shapeProps.tag || 'Text Box'}
-            fontSize={11}
-            fontFamily="Inter"
-            fill="#60a5fa"
+            fontSize={10}
+            fontFamily="JetBrains Mono, monospace"
+            fill="#a1a1aa"
             listening={false}
           />
         )}
@@ -119,19 +118,30 @@ const EditableTextElement = ({
       {isSelected && (
         <Transformer
           ref={trRef}
+          keepRatio={false} // ALLOWS FREE VERTICAL & HORIZONTAL RESIZING OF THE CONTAINER
           boundBoxFunc={(oldBox, newBox) => {
-            if (newBox.width < 40 || newBox.height < 20) {
+            if (newBox.width < 30 || newBox.height < 15) {
               return oldBox;
             }
             return newBox;
           }}
-          enabledAnchors={['middle-left', 'middle-right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          anchorCornerRadius={3}
+          // All 8 Handles Enabled: Full Height and Width Control
+          enabledAnchors={[
+            'top-left',
+            'top-center',
+            'top-right',
+            'middle-left',
+            'middle-right',
+            'bottom-left',
+            'bottom-center',
+            'bottom-right'
+          ]}
+          anchorCornerRadius={2}
           anchorSize={8}
-          anchorStroke="#3b82f6"
-          anchorFill="#ffffff"
-          borderStroke="#3b82f6"
-          borderStrokeWidth={1.5}
+          anchorStroke="#ffffff"
+          anchorFill="#09090b"
+          borderStroke="#ffffff"
+          borderStrokeWidth={1.2}
         />
       )}
     </>
@@ -144,6 +154,7 @@ export default function CanvasEditor({
   selectedId,
   onSelectElement,
   onChangeElement,
+  onUpdateTextValue,
   currentRecord,
   showGrid = true
 }) {
@@ -151,6 +162,9 @@ export default function CanvasEditor({
   const [bgImage, setBgImage] = useState(null);
   const [stageScale, setStageScale] = useState(1);
   const [stageDimensions, setStageDimensions] = useState({ width: 900, height: 506 });
+
+  // Inline Double-Click Editor Overlay State
+  const [inlineEditor, setInlineEditor] = useState(null);
 
   // Load background image
   useEffect(() => {
@@ -168,8 +182,8 @@ export default function CanvasEditor({
   useEffect(() => {
     const handleResize = () => {
       if (!containerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth - 40;
-      const containerHeight = containerRef.current.clientHeight - 40;
+      const containerWidth = containerRef.current.clientWidth - 48;
+      const containerHeight = containerRef.current.clientHeight - 48;
 
       const scaleX = containerWidth / template.width;
       const scaleY = containerHeight / template.height;
@@ -188,25 +202,45 @@ export default function CanvasEditor({
   }, [template.width, template.height]);
 
   const checkDeselect = (e) => {
-    // Deselect when clicking directly on stage background
     const clickedOnEmpty = e.target === e.target.getStage() || e.target.name() === 'bgImage' || e.target.name() === 'bgRect';
     if (clickedOnEmpty) {
       onSelectElement(null);
+      if (inlineEditor) finishInlineEditing();
     }
+  };
+
+  const handleDoubleClickElement = (element, text) => {
+    setInlineEditor({
+      element,
+      value: text || '',
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height
+    });
+  };
+
+  const finishInlineEditing = () => {
+    if (!inlineEditor) return;
+    const { element, value } = inlineEditor;
+    if (onUpdateTextValue) {
+      onUpdateTextValue(element, value);
+    }
+    setInlineEditor(null);
   };
 
   return (
     <div
       ref={containerRef}
-      className="flex-1 h-full w-full flex items-center justify-center p-6 bg-slate-950 overflow-hidden relative select-none"
+      className="flex-1 h-full w-full flex items-center justify-center p-6 bg-[#08090b] dot-grid overflow-hidden relative select-none"
     >
       {/* Canvas Paper Wrapper with Elevation */}
       <div
-        className="rounded-xl shadow-2xl overflow-hidden border border-slate-800 transition-all duration-200"
+        className="rounded-lg shadow-2xl overflow-hidden border border-neutral-800 transition-all duration-200 relative"
         style={{
           width: stageDimensions.width,
           height: stageDimensions.height,
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+          boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05)'
         }}
       >
         <Stage
@@ -218,7 +252,6 @@ export default function CanvasEditor({
           onTouchStart={checkDeselect}
         >
           <Layer>
-            {/* Background image or default fallback */}
             {bgImage ? (
               <KonvaImage
                 name="bgImage"
@@ -233,11 +266,11 @@ export default function CanvasEditor({
                 y={0}
                 width={template.width}
                 height={template.height}
-                fill="#0f172a"
+                fill="#0f1117"
               />
             )}
 
-            {/* Grid Lines if toggled */}
+            {/* Subtle Alignment Grid */}
             {showGrid && (
               <Group listening={false}>
                 {[...Array(Math.floor(template.width / 100))].map((_, i) => (
@@ -247,7 +280,7 @@ export default function CanvasEditor({
                     y={0}
                     width={1}
                     height={template.height}
-                    fill="rgba(255, 255, 255, 0.03)"
+                    fill="rgba(255, 255, 255, 0.04)"
                   />
                 ))}
                 {[...Array(Math.floor(template.height / 100))].map((_, i) => (
@@ -257,13 +290,13 @@ export default function CanvasEditor({
                     y={i * 100}
                     width={template.width}
                     height={1}
-                    fill="rgba(255, 255, 255, 0.03)"
+                    fill="rgba(255, 255, 255, 0.04)"
                   />
                 ))}
               </Group>
             )}
 
-            {/* Render all user text boxes */}
+            {/* Canvas Text Elements */}
             {elements.map((el) => (
               <EditableTextElement
                 key={el.id}
@@ -271,17 +304,53 @@ export default function CanvasEditor({
                 isSelected={el.id === selectedId}
                 onSelect={() => onSelectElement(el.id)}
                 onChange={(newAttrs) => onChangeElement(newAttrs)}
+                onDoubleClick={handleDoubleClickElement}
                 currentRecord={currentRecord}
                 stageScale={stageScale}
               />
             ))}
           </Layer>
         </Stage>
+
+        {/* Double-Click Inline Editable Overlay */}
+        {inlineEditor && (
+          <div
+            className="absolute z-30"
+            style={{
+              left: `${inlineEditor.x * stageScale}px`,
+              top: `${inlineEditor.y * stageScale}px`,
+              width: `${inlineEditor.width * stageScale}px`,
+              height: `${inlineEditor.height * stageScale}px`,
+            }}
+          >
+            <input
+              type="text"
+              autoFocus
+              value={inlineEditor.value}
+              onChange={(e) =>
+                setInlineEditor((prev) => ({ ...prev, value: e.target.value }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') finishInlineEditing();
+                if (e.key === 'Escape') setInlineEditor(null);
+              }}
+              onBlur={finishInlineEditing}
+              className="w-full h-full bg-black/90 text-white border-2 border-white rounded px-2 outline-none font-medium shadow-2xl"
+              style={{
+                fontSize: `${Math.max(12, Math.round(inlineEditor.element.fontSize * stageScale))}px`,
+                fontFamily: inlineEditor.element.fontFamily || 'Inter',
+                textAlign: inlineEditor.element.align || 'center'
+              }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Canvas Dimensions Badge */}
-      <div className="absolute bottom-4 left-6 px-3 py-1 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-md text-xs text-slate-400 font-mono">
-        Native Canvas: {template.width} × {template.height} px | Zoom: {Math.round(stageScale * 100)}%
+      {/* Floating Canvas Metadata Pill */}
+      <div className="absolute bottom-4 left-6 px-3 py-1 bg-neutral-900/90 backdrop-blur border border-neutral-800 rounded-md text-[11px] text-neutral-400 font-mono shadow-md flex items-center gap-2">
+        <span>{template.width} × {template.height} px</span>
+        <span className="text-neutral-600">•</span>
+        <span>{Math.round(stageScale * 100)}%</span>
       </div>
     </div>
   );

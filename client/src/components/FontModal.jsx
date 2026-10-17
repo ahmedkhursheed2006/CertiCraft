@@ -27,64 +27,64 @@ export default function FontModal({
       setErrorMsg('');
       const fontObj = await loadCustomFontFile(file);
       onAddCustomFont(fontObj);
-      setSuccessMsg(`Font "${fontObj.family}" installed successfully!`);
-      setTimeout(() => setSuccessMsg(''), 3500);
+      setSuccessMsg(`Font "${fontObj.family}" loaded successfully.`);
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
-      setErrorMsg('Failed to load font: ' + err.message);
+      setErrorMsg('Failed to register font: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-150">
+      <div className="bg-[#0c0d0e] border border-neutral-800 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b border-neutral-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 flex items-center justify-center">
               <Type className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">Custom Typography &amp; Fonts</h3>
-              <p className="text-xs text-slate-400">Upload your own TTF / OTF / WOFF fonts for the certificate</p>
+              <h3 className="text-xs font-semibold text-white">Typography Registry</h3>
+              <p className="text-[11px] text-neutral-400">Load brand typography into the vector engine</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        {/* Body */}
+        <div className="p-5 overflow-y-auto space-y-4">
           {errorMsg && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-xs text-red-400">
+            <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-lg flex items-center gap-2 text-xs text-red-400">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 text-xs text-emerald-400">
-              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="p-3 bg-neutral-900 border border-neutral-700 rounded-lg flex items-center gap-2 text-xs text-neutral-200">
+              <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
 
-          {/* Upload Font Box */}
-          <div className="border-2 border-dashed border-slate-800 hover:border-slate-700 bg-slate-950/50 rounded-2xl p-6 text-center flex flex-col items-center justify-center">
-            <Upload className="w-7 h-7 text-pink-400 mb-2" />
-            <p className="text-sm font-semibold text-slate-200">
+          {/* Upload Area */}
+          <div className="border border-dashed border-neutral-800 hover:border-neutral-700 bg-neutral-950/60 rounded-xl p-5 text-center flex flex-col items-center justify-center">
+            <Upload className="w-5 h-5 text-neutral-400 mb-1.5" />
+            <p className="text-xs font-semibold text-neutral-200">
               Upload Custom Font (.ttf, .otf, .woff, .woff2)
             </p>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
-              Your custom font will be immediately usable across all text boxes and exports
+            <p className="text-[11px] text-neutral-500 mt-0.5 mb-3">
+              Automatically registers in document.fonts for real-time canvas and vector PDF export
             </p>
-            <label className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg cursor-pointer transition border border-slate-700">
-              {loading ? 'Registering Font...' : 'Select Font File'}
+            <label className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium rounded cursor-pointer transition border border-neutral-700">
+              {loading ? 'Registering...' : 'Select Font File'}
               <input
                 type="file"
                 accept=".ttf,.otf,.woff,.woff2"
@@ -97,32 +97,31 @@ export default function FontModal({
             </label>
           </div>
 
-          {/* Installed & Built-In Fonts List */}
+          {/* Registered Fonts List */}
           <div>
-            <span className="text-xs font-semibold text-slate-300 block mb-2">
-              Available Fonts ({fonts.length})
+            <span className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider block mb-2">
+              Installed Fonts ({fonts.length})
             </span>
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {fonts.map((f, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800"
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-neutral-950 border border-neutral-800/80"
                 >
-                  <div>
+                  <div className="truncate">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-medium text-slate-200">{f.name}</p>
+                      <p className="text-xs font-medium text-neutral-200 truncate">{f.name}</p>
                       {f.custom && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30">
-                          CUSTOM
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono uppercase bg-neutral-800 text-neutral-300 border border-neutral-700">
+                          Custom
                         </span>
                       )}
                     </div>
-                    {/* Live Font Render Specimen */}
                     <p
-                      className="text-base text-slate-400 mt-0.5"
+                      className="text-sm text-neutral-400 mt-1 truncate"
                       style={{ fontFamily: `"${f.family}", sans-serif` }}
                     >
-                      Certificate of Achievement &amp; Excellence
+                      Certificate of Achievement
                     </p>
                   </div>
                 </div>
@@ -131,11 +130,11 @@ export default function FontModal({
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-end">
+        {/* Footer */}
+        <div className="px-5 py-3 bg-neutral-950 border-t border-neutral-800 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition"
+            className="px-4 py-1.5 bg-white hover:bg-neutral-200 text-neutral-950 rounded text-xs font-semibold transition"
           >
             Done
           </button>
