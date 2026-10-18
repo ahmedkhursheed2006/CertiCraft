@@ -70,15 +70,18 @@ export default function Header({
       </div>
 
       {/* Right: Studio Actions */}
+      {/* Right: Studio Actions */}
       <div className="flex items-center gap-2">
-        {/* Custom Fonts */}
+        {/* Primary Export Button */}
         <button
-          onClick={onOpenFontModal}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded-md text-xs font-medium border border-neutral-800 transition"
+          onClick={onOpenExportModal}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-neutral-950 rounded-md text-xs font-semibold shadow-sm transition active:scale-95"
         >
-          <Type className="w-3.5 h-3.5 text-neutral-400" />
-          <span>Fonts</span>
+          <Download className="w-3.5 h-3.5" />
+          <span>Export</span>
         </button>
+
+        <div className="h-4 w-[1px] bg-neutral-800 mx-0.5" />
 
         {/* Dataset Ingestion */}
         <button
@@ -86,20 +89,16 @@ export default function Header({
           className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 rounded-md text-xs font-medium border border-neutral-800 transition"
         >
           <FileSpreadsheet className="w-3.5 h-3.5 text-neutral-400" />
-          <span>Records ({recordCount})</span>
+          <span>Data Records ({recordCount})</span>
         </button>
 
-
-
-        <div className="h-4 w-[1px] bg-neutral-800 mx-0.5" />
-
-        {/* Primary Export Button */}
+        {/* Custom Fonts */}
         <button
-          onClick={onOpenExportModal}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-neutral-950 rounded-md text-xs font-semibold shadow-sm transition active:scale-95"
+          onClick={onOpenFontModal}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded-md text-xs font-medium border border-neutral-800 transition"
         >
-          <Download className="w-3.5 h-3.5" />
-          <span>Export Batch</span>
+          <Type className="w-3.5 h-3.5 text-neutral-400" />
+          <span>Font Library</span>
         </button>
       </div>
     </header>

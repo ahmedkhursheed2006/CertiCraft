@@ -9,7 +9,8 @@ export default function LeftSidebar({
   onDuplicateElement,
   onDeleteElement,
   showGrid,
-  onToggleGrid
+  onToggleGrid,
+  headers,
 }) {
   const [activeTab, setActiveTab] = useState('fields'); // 'fields' or 'layers'
 
@@ -19,6 +20,23 @@ export default function LeftSidebar({
     { label: 'Issue Date', tag: '{{Date}}', icon: Calendar, fontSize: 16, fontFamily: 'Inter', fill: '#f4f4f5', width: 220, height: 40 },
     { label: 'Certificate ID', tag: '{{Certificate_ID}}', icon: Hash, fontSize: 12, fontFamily: 'JetBrains Mono', fill: '#71717a', width: 280, height: 30 }
   ];
+
+  // Generate dynamic presets from uploaded CSV/Excel headers
+  const dynamicPresets = (headers && headers.length > 0)
+    ? headers.map((h) => ({
+        label: h.replace(/_/g, ' '),
+        tag: `{{${h}}}`,
+        icon: SlidersHorizontal,
+        fontSize: 16,
+        fontFamily: 'Inter',
+        fill: '#f4f4f5',
+        width: 900,
+        height: 40
+      }))
+    : [];
+
+  // Use dynamic presets if available, otherwise fallback to static PRESETS
+  const displayedPresets = dynamicPresets.length > 0 ? dynamicPresets : PRESETS;
 
   return (
     <aside className="w-68 bg-[#0c0d0e] border-r border-neutral-800/80 flex flex-col h-[calc(100vh-3.25rem)] select-none">
@@ -56,7 +74,7 @@ export default function LeftSidebar({
           </span>
 
           <div className="space-y-1.5">
-            {PRESETS.map((p, idx) => {
+            {displayedPresets.map((p, idx) => {
               const Icon = p.icon;
               return (
                 <button

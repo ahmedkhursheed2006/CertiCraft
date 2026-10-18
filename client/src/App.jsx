@@ -27,11 +27,15 @@ export default function App() {
   const [isPreviewActive, setIsPreviewActive] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
 
+  // Derive CSV/Excel headers from loaded records for dynamic field presets
+  const recordHeaders = records.length > 0 ? Object.keys(records[0]) : [];
+
   // Modals state
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [isFontModalOpen, setIsFontModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+
 
   // Keyboard shortcut listener for Delete & Escape in Studio mode
   useEffect(() => {
@@ -49,6 +53,8 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, elements, viewMode]);
+
+
 
   const handleSelectTemplate = (id) => {
     const found = templates.find((t) => t.id === id);
@@ -240,6 +246,7 @@ export default function App() {
         recordCount={records.length}
       />
 
+
       {/* Main Studio Workspace */}
       <div className="flex flex-1 relative overflow-hidden">
         {/* Left Sidebar: Variables & Layers */}
@@ -251,6 +258,7 @@ export default function App() {
           onDuplicateElement={handleDuplicateElement}
           onDeleteElement={handleDeleteElement}
           showGrid={showGrid}
+            headers={recordHeaders}
           onToggleGrid={() => setShowGrid(!showGrid)}
         />
 
